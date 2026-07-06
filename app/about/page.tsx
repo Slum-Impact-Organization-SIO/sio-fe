@@ -45,34 +45,33 @@ export default function About() {
     <div className="flex flex-col w-full overflow-x-hidden bg-background">
       {/* 1. HERO HEADER */}
       <section className="relative py-20 px-6 lg:px-8 border-b border-border bg-gradient-to-br from-background via-background to-sio-blue/5 text-center">
-        <div className="mx-auto max-w-4xl">
+        <motion.div
+          className="mx-auto max-w-4xl"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+        >
           <motion.span
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
+            variants={fadeInUp}
             className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-sio-blue dark:text-sio-teal bg-sio-blue/10 dark:bg-sio-teal/10 px-3 py-1.5 rounded-full mb-6"
           >
             <Handshake size={12} weight="fill" />
             About Slum Impact Organization
           </motion.span>
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
+            variants={fadeInUp}
             className="text-4xl sm:text-5xl lg:text-6xl font-serif font-black tracking-tight text-foreground leading-[1.1] mb-6"
           >
             Nurturing Hope, Unlocking Potential
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            variants={fadeInUp}
             className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto"
           >
             We believe that no child&apos;s future should be defined by their birthplace. Meet the
             organization committed to bridging the gap for youth living in slums.
           </motion.p>
-        </div>
+        </motion.div>
       </section>
 
       {/* 2. OUR STORY */}
