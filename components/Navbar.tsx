@@ -15,9 +15,7 @@ export default function Navbar() {
   // Handle system theme on initial load
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-    const initialTheme = savedTheme || (systemPrefersDark ? "dark" : "light");
+    const initialTheme = savedTheme || "light";
 
     if (initialTheme === "dark") {
       document.documentElement.classList.add("dark");
