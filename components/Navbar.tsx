@@ -12,7 +12,7 @@ export default function Navbar() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const pathname = usePathname();
 
-  // Handle system theme on initial load
+  // Initialize theme from local storage on mount (defaults to light)
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
     const initialTheme = savedTheme || "light";
