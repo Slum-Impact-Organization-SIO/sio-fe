@@ -21,8 +21,11 @@ export default function Impact() {
   // Animation presets
   const fadeInUp = {
     initial: { opacity: 0, y: 35 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: "easeOut" },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
   } as const;
 
   const staggerContainer = {
@@ -144,7 +147,7 @@ export default function Impact() {
                 alt="Beatrice holding her notebook, smiling with hope"
                 fill
                 className="object-cover"
-                sizes="(max-w-768px) 100vw, 40vw"
+                sizes="(max-width: 768px) 100vw, 40vw"
               />
             </div>
             {/* Background Accent Box */}
