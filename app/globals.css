@@ -128,4 +128,12 @@
   html {
     @apply font-sans;
   }
+  a,
+  button,
+  select,
+  input[type="submit"],
+  input[type="button"],
+  [role="button"] {
+    cursor: pointer;
+  }
 }
