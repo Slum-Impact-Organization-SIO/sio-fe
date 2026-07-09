@@ -21,8 +21,11 @@ export default function About() {
   // Animation configurations
   const fadeInUp = {
     initial: { opacity: 0, y: 35 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: "easeOut" },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
   } as const;
 
   const staggerContainer = {
@@ -115,7 +118,7 @@ export default function About() {
                 alt="Community leaders and volunteers with hopeful children"
                 fill
                 className="object-cover"
-                sizes="(max-w-768px) 100vw, 40vw"
+                sizes="(max-width: 768px) 100vw, 40vw"
               />
             </div>
             {/* Background Accent Box */}
