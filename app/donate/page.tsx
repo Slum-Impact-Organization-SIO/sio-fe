@@ -10,7 +10,6 @@ import {
   CheckCircle,
   CreditCard,
   CaretDown,
-  Sparkle,
   Heart,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -165,24 +164,6 @@ export default function Donate() {
   });
   const [errors, setErrors] = useState<Partial<Record<keyof typeof form | "amount", string>>>({});
   const [submitted, setSubmitted] = useState(false);
-
-  // Animation configurations
-  const fadeInUp = {
-    initial: { opacity: 0, y: 35 },
-    animate: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
-    },
-  } as const;
-
-  const staggerContainer = {
-    animate: {
-      transition: {
-        staggerChildren: 0.15,
-      },
-    },
-  } as const;
 
   // Clear specific field errors when user starts typing/correcting
   const handleFieldChange = (field: keyof typeof form, value: string) => {
