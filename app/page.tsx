@@ -297,7 +297,7 @@ export default function Home() {
                 variant="outline"
                 className="rounded-full border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white font-bold px-8 py-5 text-base transition-transform hover:scale-105 duration-200"
               >
-                <Link href="/about">Be a Volunteer</Link>
+                <Link href="/volunteer">Be a Volunteer</Link>
               </Button>
             </div>
           </div>
