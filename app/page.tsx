@@ -20,8 +20,11 @@ export default function Home() {
   // Animation presets
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: "easeOut" },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
   } as const;
 
   const staggerContainer = {
@@ -115,7 +118,7 @@ export default function Home() {
                 alt="Hopeful children smiling and learning"
                 fill
                 className="object-cover"
-                sizes="(max-w-768px) 100vw, 50vw"
+                sizes="(max-width: 768px) 100vw, 50vw"
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -235,7 +238,7 @@ export default function Home() {
                     alt={program.title}
                     fill
                     className="object-cover transition-transform duration-500 hover:scale-105"
-                    sizes="(max-w-768px) 100vw, 33vw"
+                    sizes="(max-width: 768px) 100vw, 33vw"
                   />
                 </div>
 
