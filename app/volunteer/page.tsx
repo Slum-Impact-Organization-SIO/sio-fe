@@ -13,60 +13,153 @@ import {
   Calendar,
   Plus,
   Minus,
+  CaretDown,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { z } from "zod";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
-// Styled custom FAQ Collapsible Item
-function FAQItem({ id, question, answer }: { id: string; question: string; answer: string }) {
+// Zod validation schema for volunteer form
+const volunteerSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name cannot exceed 50 characters")
+    .regex(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z
+    .string()
+    .min(10, "Phone number must be at least 10 digits")
+    .max(16, "Phone number cannot exceed 16 digits")
+    .regex(/^[+]?[0-9\s-]+$/, "Invalid characters. Use numbers, spaces, and hyphens"),
+  role: z.string().min(1, "Please select a program interest"),
+  availability: z.string().min(1, "Please select your availability"),
+  motivation: z
+    .string()
+    .min(10, "Please provide a short explanation (at least 10 characters)")
+    .max(500, "Explanation cannot exceed 500 characters"),
+});
+
+// FAQ section uses the customized shadcn Accordion
+
+// Custom animated dropdown select component
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+function CustomSelect({
+  id,
+  value,
+  onChange,
+  options,
+  label,
+  error,
+}: {
+  id: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: SelectOption[];
+  label: string;
+  error?: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find((opt) => opt.value === value) || options[0];
+
+  const handleSelect = (val: string) => {
+    onChange(val);
+    setIsOpen(false);
+  };
 
   return (
-    <div
-      className={`border rounded-2xl transition-all duration-300 overflow-hidden ${
-        isOpen
-          ? "border-sio-blue bg-sio-blue/[0.02] dark:border-sio-teal dark:bg-sio-teal/[0.02] shadow-sm"
-          : "border-border bg-card hover:border-sio-blue/20 dark:hover:border-sio-teal/20"
-      }`}
-    >
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between text-left p-5 sm:p-6 text-base font-bold text-foreground transition-colors group cursor-pointer"
+    <div className="space-y-2 relative" ref={containerRef}>
+      <label
+        htmlFor={id}
+        className={`text-xs font-bold uppercase tracking-wider transition-colors ${
+          error ? "text-destructive" : "text-foreground"
+        }`}
       >
-        <div className="flex items-start gap-4 pr-4">
-          <span
-            className={`font-mono text-sm font-semibold transition-colors mt-0.5 ${
-              isOpen ? "text-sio-blue dark:text-sio-teal" : "text-muted-foreground"
-            }`}
-          >
-            {id}
-          </span>
-          <span>{question}</span>
-        </div>
-        <div
-          className={`h-8 w-8 rounded-full border flex items-center justify-center shrink-0 transition-all duration-300 ${
+        {label}
+      </label>
+      <div className="relative">
+        <button
+          id={id}
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen(!isOpen)}
+          className={`w-full flex items-center justify-between rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 cursor-pointer transition-all ${
             isOpen
-              ? "border-sio-blue bg-sio-blue text-white dark:border-sio-teal dark:bg-sio-teal dark:text-sio-navy"
-              : "border-border bg-muted text-muted-foreground group-hover:border-sio-blue/30 group-hover:text-sio-blue dark:group-hover:border-sio-teal/30 dark:group-hover:text-sio-teal"
+              ? "border-sio-blue ring-1 ring-sio-blue dark:border-sio-teal dark:ring-sio-teal"
+              : error
+                ? "border-destructive focus:border-destructive focus:ring-destructive"
+                : "border-border hover:border-sio-blue/30 dark:hover:border-sio-teal/30"
           }`}
         >
-          {isOpen ? <Minus size={14} weight="bold" /> : <Plus size={14} weight="bold" />}
-        </div>
-      </button>
+          <span>{selectedOption.label}</span>
+          <CaretDown
+            size={16}
+            className={`text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          />
+        </button>
 
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            <div className="px-6 pb-6 pl-14 text-sm text-muted-foreground leading-relaxed">
-              {answer}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.ul
+              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              role="listbox"
+              className="absolute left-0 right-0 z-30 mt-1.5 max-h-60 w-full overflow-auto rounded-xl border border-border bg-card/95 backdrop-blur-md py-1.5 shadow-xl outline-none"
+            >
+              {options.map((opt) => {
+                const isSelected = opt.value === value;
+                return (
+                  <li
+                    key={opt.value}
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => handleSelect(opt.value)}
+                    className={`flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer select-none transition-colors ${
+                      isSelected
+                        ? "bg-sio-blue/10 dark:bg-sio-teal/10 text-sio-blue dark:text-sio-teal font-bold"
+                        : "text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {isSelected && (
+                      <CheckCircle
+                        size={16}
+                        weight="fill"
+                        className="text-sio-blue dark:text-sio-teal"
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </motion.ul>
+          )}
+        </AnimatePresence>
+      </div>
+      {error && <p className="text-xs text-destructive mt-1 font-semibold">{error}</p>}
     </div>
   );
 }
@@ -80,11 +173,33 @@ export default function Volunteer() {
     availability: "flexible",
     motivation: "",
   });
+  const [errors, setErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
   const [submitted, setSubmitted] = useState(false);
+
+  // Clear specific field errors when user starts typing/correcting
+  const handleFieldChange = (field: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.name && form.email && form.phone) {
+    const result = volunteerSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof typeof form, string>> = {};
+      result.error.issues.forEach((issue) => {
+        const path = issue.path[0] as keyof typeof form;
+        fieldErrors[path] = issue.message;
+      });
+      setErrors(fieldErrors);
+    } else {
+      setErrors({});
       setSubmitted(true);
     }
   };
@@ -92,8 +207,11 @@ export default function Volunteer() {
   // Animation presets
   const fadeInUp = {
     initial: { opacity: 0, y: 35 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: "easeOut" },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
   } as const;
 
   const staggerContainer = {
@@ -213,7 +331,7 @@ export default function Volunteer() {
                 alt="Volunteer helping children learn"
                 fill
                 className="object-cover opacity-20"
-                sizes="(max-w-768px) 100vw, 40vw"
+                sizes="(max-width: 768px) 100vw, 40vw"
               />
             </div>
             <div className="relative z-10">
@@ -238,7 +356,7 @@ export default function Volunteer() {
           {/* Form Panel (Right) */}
           <div className="lg:col-span-7 bg-card border border-border rounded-3xl p-8 sm:p-10 shadow-md">
             {!submitted ? (
-              <form onSubmit={handleSubmit} className="space-y-6 text-left">
+              <form onSubmit={handleSubmit} noValidate className="space-y-6 text-left">
                 <h3 className="text-2xl font-serif font-bold text-foreground">
                   Volunteer Application
                 </h3>
@@ -249,90 +367,129 @@ export default function Volunteer() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    <label
+                      htmlFor="volunteer-name"
+                      className={`text-xs font-bold uppercase tracking-wider transition-colors ${errors.name ? "text-destructive" : "text-foreground"}`}
+                    >
                       Full Name
                     </label>
                     <input
+                      id="volunteer-name"
                       type="text"
-                      required
                       placeholder="e.g. Tunde Balogun"
                       value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-sio-blue focus:outline-none focus:ring-1 focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
+                      onChange={(e) => handleFieldChange("name", e.target.value)}
+                      className={`w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 ${
+                        errors.name
+                          ? "border-destructive focus:border-destructive focus:ring-destructive"
+                          : "border-border focus:border-sio-blue focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
+                      }`}
                     />
+                    {errors.name && (
+                      <p className="text-xs text-destructive mt-1 font-semibold">{errors.name}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    <label
+                      htmlFor="volunteer-phone"
+                      className={`text-xs font-bold uppercase tracking-wider transition-colors ${errors.phone ? "text-destructive" : "text-foreground"}`}
+                    >
                       Phone Number
                     </label>
                     <input
+                      id="volunteer-phone"
                       type="tel"
-                      required
                       placeholder="e.g. +234 801 234 5678"
                       value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-sio-blue focus:outline-none focus:ring-1 focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
+                      onChange={(e) => handleFieldChange("phone", e.target.value)}
+                      className={`w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 ${
+                        errors.phone
+                          ? "border-destructive focus:border-destructive focus:ring-destructive"
+                          : "border-border focus:border-sio-blue focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
+                      }`}
                     />
+                    {errors.phone && (
+                      <p className="text-xs text-destructive mt-1 font-semibold">{errors.phone}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  <label
+                    htmlFor="volunteer-email"
+                    className={`text-xs font-bold uppercase tracking-wider transition-colors ${errors.email ? "text-destructive" : "text-foreground"}`}
+                  >
                     Email Address
                   </label>
                   <input
+                    id="volunteer-email"
                     type="email"
-                    required
                     placeholder="e.g. tunde@gmail.com"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-sio-blue focus:outline-none focus:ring-1 focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
+                    onChange={(e) => handleFieldChange("email", e.target.value)}
+                    className={`w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 ${
+                      errors.email
+                        ? "border-destructive focus:border-destructive focus:ring-destructive"
+                        : "border-border focus:border-sio-blue focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
+                    }`}
                   />
+                  {errors.email && (
+                    <p className="text-xs text-destructive mt-1 font-semibold">{errors.email}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-foreground">
-                      Primary Program Interest
-                    </label>
-                    <select
-                      value={form.role}
-                      onChange={(e) => setForm({ ...form, role: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-sio-blue focus:outline-none focus:ring-1 focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
-                    >
-                      <option value="academic">Academic Support & Tutoring</option>
-                      <option value="nutrition">Feeding Program & Logistics</option>
-                      <option value="creative">Talent & Sports Mentorship</option>
-                      <option value="operations">Operations, Media & Admin</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-foreground">
-                      Availability
-                    </label>
-                    <select
-                      value={form.availability}
-                      onChange={(e) => setForm({ ...form, availability: e.target.value })}
-                      className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-sio-blue focus:outline-none focus:ring-1 focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
-                    >
-                      <option value="weekdays">Weekdays (Mon - Fri)</option>
-                      <option value="weekends">Weekends (Sat - Sun)</option>
-                      <option value="flexible">Flexible / Remote Support</option>
-                    </select>
-                  </div>
+                  <CustomSelect
+                    id="volunteer-role"
+                    label="Primary Program Interest"
+                    value={form.role}
+                    onChange={(val) => handleFieldChange("role", val)}
+                    error={errors.role}
+                    options={[
+                      { value: "academic", label: "Academic Support & Tutoring" },
+                      { value: "nutrition", label: "Feeding Program & Logistics" },
+                      { value: "creative", label: "Talent & Sports Mentorship" },
+                      { value: "operations", label: "Operations, Media & Admin" },
+                    ]}
+                  />
+                  <CustomSelect
+                    id="volunteer-availability"
+                    label="Availability"
+                    value={form.availability}
+                    onChange={(val) => handleFieldChange("availability", val)}
+                    error={errors.availability}
+                    options={[
+                      { value: "weekdays", label: "Weekdays (Mon - Fri)" },
+                      { value: "weekends", label: "Weekends (Sat - Sun)" },
+                      { value: "flexible", label: "Flexible / Remote Support" },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  <label
+                    htmlFor="volunteer-motivation"
+                    className={`text-xs font-bold uppercase tracking-wider transition-colors ${errors.motivation ? "text-destructive" : "text-foreground"}`}
+                  >
                     Why do you want to volunteer? (Brief)
                   </label>
                   <textarea
+                    id="volunteer-motivation"
                     rows={4}
                     placeholder="Tell us a little bit about yourself and why you'd like to join hands with SIO..."
                     value={form.motivation}
-                    onChange={(e) => setForm({ ...form, motivation: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-sio-blue focus:outline-none focus:ring-1 focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
+                    onChange={(e) => handleFieldChange("motivation", e.target.value)}
+                    className={`w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 resize-none ${
+                      errors.motivation
+                        ? "border-destructive focus:border-destructive focus:ring-destructive"
+                        : "border-border focus:border-sio-blue focus:ring-sio-blue dark:focus:border-sio-teal dark:focus:ring-sio-teal"
+                    }`}
                   />
+                  {errors.motivation && (
+                    <p className="text-xs text-destructive mt-1 font-semibold">
+                      {errors.motivation}
+                    </p>
+                  )}
                 </div>
 
                 <Button
@@ -399,31 +556,47 @@ export default function Volunteer() {
             </h2>
           </div>
 
-          <div className="space-y-4 max-w-3xl mx-auto">
-            {[
-              {
-                id: "01",
-                q: "What is the minimum time commitment?",
-                a: "We are highly flexible! Academic tutors generally spend 2-4 hours on Saturdays at our hub, while health and kitchen volunteers assist during lunchtime feeding blocks. We also support remote options for operations.",
-              },
-              {
-                id: "02",
-                q: "Do I need specific qualifications or background checks?",
-                a: "You do not need formal teaching qualifications. However, because we work directly with vulnerable children, all successful applicants must undergo a basic background verification check and attend our mandatory child safeguarding induction.",
-              },
-              {
-                id: "03",
-                q: "Can I volunteer remotely?",
-                a: "Yes! SIO relies on volunteer support in digital operations, graphic design, writing grant proposals, translation, and media editing. If you wish to support remotely, select 'Flexible / Remote Support' as your availability.",
-              },
-              {
-                id: "04",
-                q: "Where exactly are the volunteer hubs located?",
-                a: "Our primary centers are located in the high-need communities within Lagos, Nigeria. When your application is approved, our coordinators will assign you to the nearest hub closest to your location.",
-              },
-            ].map((faq, index) => (
-              <FAQItem key={index} id={faq.id} question={faq.q} answer={faq.a} />
-            ))}
+          <div className="max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="w-full space-y-4">
+              {[
+                {
+                  id: "01",
+                  q: "What is the minimum time commitment?",
+                  a: "We are highly flexible! Academic tutors generally spend 2-4 hours on Saturdays at our hub, while health and kitchen volunteers assist during lunchtime feeding blocks. We also support remote options for operations.",
+                },
+                {
+                  id: "02",
+                  q: "Do I need specific qualifications or background checks?",
+                  a: "You do not need formal teaching qualifications. However, because we work directly with vulnerable children, all successful applicants must undergo a basic background verification check and attend our mandatory child safeguarding induction.",
+                },
+                {
+                  id: "03",
+                  q: "Can I volunteer remotely?",
+                  a: "Yes! SIO relies on volunteer support in digital operations, graphic design, writing grant proposals, translation, and media editing. If you wish to support remotely, select 'Flexible / Remote Support' as your availability.",
+                },
+                {
+                  id: "04",
+                  q: "Where exactly are the volunteer hubs located?",
+                  a: "Our primary centers are located in the high-need communities within Lagos, Nigeria. When your application is approved, our coordinators will assign you to the nearest hub closest to your location.",
+                },
+              ].map((faq) => (
+                <AccordionItem
+                  key={faq.id}
+                  value={faq.id}
+                  className="border border-border bg-card data-[state=open]:border-sio-blue data-[state=open]:bg-sio-blue/[0.02] dark:data-[state=open]:border-sio-teal dark:data-[state=open]:bg-sio-teal/[0.02] hover:border-sio-blue/20 dark:hover:border-sio-teal/20 transition-all duration-300"
+                >
+                  <AccordionTrigger className="px-5 sm:px-6 hover:no-underline">
+                    <div className="flex items-start gap-4 pr-4">
+                      <span className="font-mono text-sm font-semibold transition-colors mt-0.5 text-muted-foreground group-data-[state=open]/accordion-trigger:text-sio-blue dark:group-data-[state=open]/accordion-trigger:text-sio-teal">
+                        {faq.id}
+                      </span>
+                      <span>{faq.q}</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-5 sm:px-6">{faq.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         </div>
       </section>
