@@ -7,12 +7,10 @@ import { motion } from "motion/react";
 import {
   GraduationCap,
   ForkKnife,
-  Heart,
   TrendUp,
   Coins,
   Users,
   ShieldCheck,
-  ArrowRight,
 } from "@phosphor-icons/react";
 import CountUp from "@/components/CountUp";
 import { Button } from "@/components/ui/button";
