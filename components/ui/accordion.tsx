@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { Accordion as AccordionPrimitive } from "radix-ui";
+import { CaretDown, CaretUp } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/utils";
-import { CaretDown, CaretUp } from "@phosphor-icons/react";
 
 function Accordion({ className, ...props }: React.ComponentProps<typeof AccordionPrimitive.Root>) {
   return (
@@ -23,7 +23,7 @@ function AccordionItem({
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
-      className={cn("not-last:border-b", className)}
+      className={cn("border rounded-2xl transition-all duration-300 overflow-hidden", className)}
       {...props}
     />
   );
@@ -35,24 +35,31 @@ function AccordionTrigger({
   ...props
 }: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
   return (
-    <AccordionPrimitive.Header className="flex">
+    <AccordionPrimitive.Header className="flex w-full">
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "group/accordion-trigger relative flex flex-1 items-start justify-between rounded-none border border-transparent py-2.5 text-left text-xs font-medium transition-all outline-none hover:underline focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 focus-visible:after:border-ring disabled:pointer-events-none disabled:opacity-50 **:data-[slot=accordion-trigger-icon]:ml-auto **:data-[slot=accordion-trigger-icon]:size-4 **:data-[slot=accordion-trigger-icon]:text-muted-foreground",
+          "group/accordion-trigger relative flex flex-1 items-center justify-between py-5 text-left text-base font-bold text-foreground transition-all outline-none cursor-pointer",
           className,
         )}
         {...props}
       >
         {children}
-        <CaretDown
+        <div
           data-slot="accordion-trigger-icon"
-          className="pointer-events-none shrink-0 group-aria-expanded/accordion-trigger:hidden"
-        />
-        <CaretUp
-          data-slot="accordion-trigger-icon"
-          className="pointer-events-none hidden shrink-0 group-aria-expanded/accordion-trigger:inline"
-        />
+          className="h-8 w-8 rounded-full border flex items-center justify-center shrink-0 transition-all duration-300 border-border bg-muted text-muted-foreground group-hover:border-sio-blue/30 group-hover:text-sio-blue dark:group-hover:border-sio-teal/30 dark:group-hover:text-sio-teal group-data-[state=open]/accordion-trigger:border-sio-blue group-data-[state=open]/accordion-trigger:bg-sio-blue group-data-[state=open]/accordion-trigger:text-white dark:group-data-[state=open]/accordion-trigger:border-sio-teal dark:group-data-[state=open]/accordion-trigger:bg-sio-teal dark:group-data-[state=open]/accordion-trigger:text-sio-navy"
+        >
+          <CaretDown
+            size={14}
+            weight="bold"
+            className="pointer-events-none shrink-0 group-data-[state=open]/accordion-trigger:hidden"
+          />
+          <CaretUp
+            size={14}
+            weight="bold"
+            className="pointer-events-none hidden shrink-0 group-data-[state=open]/accordion-trigger:inline"
+          />
+        </div>
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   );
@@ -66,12 +73,12 @@ function AccordionContent({
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
-      className="overflow-hidden text-xs data-open:animate-accordion-down data-closed:animate-accordion-up"
+      className="overflow-hidden text-sm data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up"
       {...props}
     >
       <div
         className={cn(
-          "h-(--radix-accordion-content-height) pt-0 pb-2.5 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
+          "pt-0 pb-5 pr-4 pl-14 text-sm text-muted-foreground leading-relaxed",
           className,
         )}
       >

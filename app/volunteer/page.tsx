@@ -8,11 +8,8 @@ import {
   GraduationCap,
   ForkKnife,
   Sparkle,
-  ArrowRight,
   CheckCircle,
   Calendar,
-  Plus,
-  Minus,
   CaretDown,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
