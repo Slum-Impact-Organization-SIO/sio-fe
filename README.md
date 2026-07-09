@@ -47,7 +47,7 @@ sio-fe/
 
 ### Prerequisites
 
-- **Node.js**: Version 20 or higher.
+- **Node.js**: Version 24 or higher.
 - **pnpm**: Version 11.6.0 or higher. Install it globally via:
   ```bash
   npm install -g pnpm
@@ -91,6 +91,8 @@ pnpm dev
 Once started, the application will be available at:
 
 - **Local Application URL:** http://localhost:3000/
+- **Staging URL:** https://staging-slum-impact-organization.vercel.app/
+- **Production URL:** https://slum-impact-organization.vercel.app/
 
 ---
 
