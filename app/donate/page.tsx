@@ -529,7 +529,7 @@ export default function Donate() {
                       onChange={(val) => handleFieldChange("preference", val)}
                       error={errors.preference}
                       options={[
-                        { value: "general", label: "General Impact Fund (Where needed most)" },
+                        { value: "general", label: "General Impact Fund" },
                         { value: "education", label: "Education & Tutors Support" },
                         { value: "nutrition", label: "Nutritional Feeding Support" },
                         { value: "wellness", label: "Wellness Hub & Health Supplies" },
