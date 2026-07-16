@@ -47,6 +47,7 @@ export default function Navbar() {
     { name: "Home", href: "/" },
     { name: "About Us", href: "/about" },
     { name: "Impact Report", href: "/impact" },
+    { name: "Gallery", href: "/gallery" },
   ];
 
   return (
