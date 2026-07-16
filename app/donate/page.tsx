@@ -19,6 +19,42 @@ import {
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
 
+// Luhn Algorithm checksum check for card validation
+function validateLuhn(cardNumber: string): boolean {
+  const clean = cardNumber.replace(/\s+/g, "");
+  if (!/^\d+$/.test(clean)) return false;
+  let sum = 0;
+  let shouldDouble = false;
+  for (let i = clean.length - 1; i >= 0; i--) {
+    let digit = parseInt(clean.charAt(i), 10);
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+  return sum % 10 === 0;
+}
+
+// Expiry date verification (rejects past months/years)
+function validateFutureDate(expiry: string): boolean {
+  const clean = expiry.replace(/\s+/g, "");
+  const match = clean.match(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/);
+  if (!match) return false;
+
+  const month = parseInt(match[1], 10);
+  const year = parseInt("20" + match[2], 10);
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-indexed
+
+  if (year < currentYear) return false;
+  if (year === currentYear && month < currentMonth) return false;
+  return true;
+}
+
 // Zod validation schema for Step 1 (Donation Details)
 const donateSchema = z.object({
   name: z
@@ -48,14 +84,13 @@ const cardSchema = z.object({
   cardNumber: z
     .string()
     .transform((val) => val.replace(/\s+/g, ""))
-    .refine((val) => /^\d{15,19}$/.test(val), "Card number must be 15 to 19 digits"),
+    .refine((val) => /^\d{15,19}$/.test(val), "Card number must be 15 to 19 digits")
+    .refine((val) => validateLuhn(val), "Invalid card number (failed checksum validation)"),
   cardExpiry: z
     .string()
     .transform((val) => val.replace(/\s+/g, ""))
-    .refine(
-      (val) => /^(0[1-9]|1[0-2])\/?[2-3][0-9]$/.test(val),
-      "Expiry must be MM/YY format (future date)",
-    ),
+    .refine((val) => /^(0[1-9]|1[0-2])\/?([0-9]{2})$/.test(val), "Expiry must be MM/YY format")
+    .refine((val) => validateFutureDate(val), "Card has expired"),
   cardCvv: z
     .string()
     .transform((val) => val.replace(/\s+/g, ""))
@@ -184,7 +219,12 @@ function getCardBrand(num: string): "Visa" | "Mastercard" | "Verve" | "Generic" 
   if (clean.startsWith("4")) return "Visa";
   if (/^5[1-5]/.test(clean)) return "Mastercard";
   if (clean.startsWith("506") || clean.startsWith("507") || clean.startsWith("6")) return "Verve";
-  return "Generic";
+}
+
+function generateMockToken(brand: string): string {
+  // Use a combination of timestamp and a pseudo-random value safely outside component body
+  const rand = Math.floor(100000 + Math.random() * 900000);
+  return `tok_${brand.toLowerCase()}_${Date.now().toString(36)}_${rand}`;
 }
 
 // Inline high-fidelity SVG card network logo badges
@@ -403,7 +443,7 @@ export default function Donate() {
   };
 
   // Submit Step 2 Custom Card (Temu Style)
-  const handlePayDirect = (e: React.FormEvent) => {
+  const handlePayDirect = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = cardSchema.safeParse(cardForm);
 
@@ -418,19 +458,58 @@ export default function Donate() {
       setCardErrors({});
       setIsProcessing(true);
 
-      // Simulate direct charge timeline checks
-      setProcessingStatus("Encrypting card credentials...");
-      setTimeout(() => {
-        setProcessingStatus("Contacting bank secure gateway...");
-        setTimeout(() => {
-          setProcessingStatus("Authorizing transaction (3D Secure)...");
-          setTimeout(() => {
-            setIsProcessing(false);
-            setSubmitted(true);
-            formContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }, 1500);
-        }, 1500);
-      }, 1500);
+      try {
+        setProcessingStatus("Generating secure provider token...");
+        // Simulate provider hosted tokenization call (e.g. Stripe Elements or Paystack tokenization API)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const providerToken = generateMockToken(cardBrand);
+
+        // CRITICAL SECURITY FIX: Instantly erase raw PAN/CVV from first-party React state memory
+        setCardForm({
+          cardName: "",
+          cardNumber: "",
+          cardExpiry: "",
+          cardCvv: "",
+        });
+
+        setProcessingStatus("Submitting token and metadata to server...");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Submit ONLY the generated token plus metadata to our verified backend API route
+        const response = await fetch("/api/verify-donation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: providerToken,
+            amount: parsedFinalAmount,
+            email: form.email,
+            name: form.name,
+            preference: form.preference,
+            interval: form.interval,
+          }),
+        });
+
+        const verification = await response.json();
+
+        if (!response.ok) {
+          throw new Error(verification.error || "Gateway validation failed");
+        }
+
+        setProcessingStatus("Payment verified successfully!");
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        setIsProcessing(false);
+        setSubmitted(true);
+        formContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Payment verification failed. Please try again.";
+        setIsProcessing(false);
+        setCardErrors({
+          cardNumber: errorMessage,
+        });
+        formContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }
   };
 
@@ -442,6 +521,13 @@ export default function Donate() {
 
   return (
     <div className="flex flex-col w-full overflow-x-hidden bg-background min-h-screen">
+      {/* Accessibility Screen Reader status announcer */}
+      <div className="sr-only" aria-live="assertive" role="status">
+        {isProcessing && `Payment processing status: ${processingStatus}`}
+        {submitted &&
+          `Donation transaction completed successfully. Thank you for your partnership.`}
+      </div>
+
       {/* 1. HERO HEADER */}
       <section className="relative py-20 px-6 lg:px-8 border-b border-border bg-gradient-to-br from-background via-background to-sio-blue/5 text-center">
         <div className="mx-auto max-w-4xl">
@@ -731,6 +817,8 @@ export default function Donate() {
                         placeholder="e.g. Chioma Nwachukwu"
                         value={form.name}
                         onChange={(e) => handleFieldChange("name", e.target.value)}
+                        aria-invalid={errors.name ? "true" : "false"}
+                        aria-describedby={errors.name ? "error-donor-name" : undefined}
                         className={`w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 ${
                           errors.name
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
@@ -738,7 +826,13 @@ export default function Donate() {
                         }`}
                       />
                       {errors.name && (
-                        <p className="text-xs text-destructive mt-1 font-semibold">{errors.name}</p>
+                        <p
+                          id="error-donor-name"
+                          role="alert"
+                          className="text-xs text-destructive mt-1 font-semibold"
+                        >
+                          {errors.name}
+                        </p>
                       )}
                     </div>
                     <div className="space-y-2">
@@ -754,6 +848,8 @@ export default function Donate() {
                         placeholder="e.g. +234 802 345 6789"
                         value={form.phone}
                         onChange={(e) => handleFieldChange("phone", e.target.value)}
+                        aria-invalid={errors.phone ? "true" : "false"}
+                        aria-describedby={errors.phone ? "error-donor-phone" : undefined}
                         className={`w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 ${
                           errors.phone
                             ? "border-destructive focus:border-destructive focus:ring-destructive"
@@ -761,7 +857,11 @@ export default function Donate() {
                         }`}
                       />
                       {errors.phone && (
-                        <p className="text-xs text-destructive mt-1 font-semibold">
+                        <p
+                          id="error-donor-phone"
+                          role="alert"
+                          className="text-xs text-destructive mt-1 font-semibold"
+                        >
                           {errors.phone}
                         </p>
                       )}
@@ -781,6 +881,8 @@ export default function Donate() {
                       placeholder="e.g. chioma@gmail.com"
                       value={form.email}
                       onChange={(e) => handleFieldChange("email", e.target.value)}
+                      aria-invalid={errors.email ? "true" : "false"}
+                      aria-describedby={errors.email ? "error-donor-email" : undefined}
                       className={`w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 ${
                         errors.email
                           ? "border-destructive focus:border-destructive focus:ring-destructive"
@@ -788,7 +890,13 @@ export default function Donate() {
                       }`}
                     />
                     {errors.email && (
-                      <p className="text-xs text-destructive mt-1 font-semibold">{errors.email}</p>
+                      <p
+                        id="error-donor-email"
+                        role="alert"
+                        className="text-xs text-destructive mt-1 font-semibold"
+                      >
+                        {errors.email}
+                      </p>
                     )}
                   </div>
 
@@ -911,6 +1019,8 @@ export default function Donate() {
                       placeholder="Name on card"
                       value={cardForm.cardName}
                       onChange={handleCardNameChange}
+                      aria-invalid={cardErrors.cardName ? "true" : "false"}
+                      aria-describedby={cardErrors.cardName ? "error-card-name" : undefined}
                       className={`w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-1 ${
                         cardErrors.cardName
                           ? "border-destructive focus:border-destructive focus:ring-destructive"
@@ -918,7 +1028,11 @@ export default function Donate() {
                       }`}
                     />
                     {cardErrors.cardName && (
-                      <p className="text-xs text-destructive mt-0.5 font-semibold">
+                      <p
+                        id="error-card-name"
+                        role="alert"
+                        className="text-xs text-destructive mt-0.5 font-semibold"
+                      >
                         {cardErrors.cardName}
                       </p>
                     )}
@@ -938,12 +1052,18 @@ export default function Donate() {
                         placeholder="4000 1234 5678 9010"
                         value={cardForm.cardNumber}
                         onChange={handleCardNumberChange}
+                        aria-invalid={cardErrors.cardNumber ? "true" : "false"}
+                        aria-describedby={cardErrors.cardNumber ? "error-card-number" : undefined}
                         className="w-full bg-transparent pl-4 pr-2 py-2.5 text-sm text-foreground focus:outline-none"
                       />
                       <CreditCard size={18} className="text-muted-foreground" />
                     </div>
                     {cardErrors.cardNumber && (
-                      <p className="text-xs text-destructive mt-0.5 font-semibold">
+                      <p
+                        id="error-card-number"
+                        role="alert"
+                        className="text-xs text-destructive mt-0.5 font-semibold"
+                      >
                         {cardErrors.cardNumber}
                       </p>
                     )}
@@ -964,12 +1084,18 @@ export default function Donate() {
                           placeholder="MM / YY"
                           value={cardForm.cardExpiry}
                           onChange={handleCardExpiryChange}
+                          aria-invalid={cardErrors.cardExpiry ? "true" : "false"}
+                          aria-describedby={cardErrors.cardExpiry ? "error-card-expiry" : undefined}
                           className="w-full bg-transparent pl-4 pr-2 py-2.5 text-sm text-foreground focus:outline-none"
                         />
                         <Calendar size={18} className="text-muted-foreground" />
                       </div>
                       {cardErrors.cardExpiry && (
-                        <p className="text-xs text-destructive mt-0.5 font-semibold">
+                        <p
+                          id="error-card-expiry"
+                          role="alert"
+                          className="text-xs text-destructive mt-0.5 font-semibold"
+                        >
                           {cardErrors.cardExpiry}
                         </p>
                       )}
@@ -989,12 +1115,18 @@ export default function Donate() {
                           placeholder="123"
                           value={cardForm.cardCvv}
                           onChange={handleCardCvvChange}
+                          aria-invalid={cardErrors.cardCvv ? "true" : "false"}
+                          aria-describedby={cardErrors.cardCvv ? "error-card-cvv" : undefined}
                           className="w-full bg-transparent pl-4 pr-2 py-2.5 text-sm text-foreground focus:outline-none font-mono"
                         />
                         <Lock size={18} className="text-muted-foreground" />
                       </div>
                       {cardErrors.cardCvv && (
-                        <p className="text-xs text-destructive mt-0.5 font-semibold">
+                        <p
+                          id="error-card-cvv"
+                          role="alert"
+                          className="text-xs text-destructive mt-0.5 font-semibold"
+                        >
                           {cardErrors.cardCvv}
                         </p>
                       )}
