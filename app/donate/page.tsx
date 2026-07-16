@@ -219,6 +219,7 @@ function getCardBrand(num: string): "Visa" | "Mastercard" | "Verve" | "Generic" 
   if (clean.startsWith("4")) return "Visa";
   if (/^5[1-5]/.test(clean)) return "Mastercard";
   if (clean.startsWith("506") || clean.startsWith("507") || clean.startsWith("6")) return "Verve";
+  return "Generic";
 }
 
 function generateMockToken(brand: string): string {
