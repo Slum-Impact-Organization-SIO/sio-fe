@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
@@ -12,7 +12,6 @@ import {
   ArrowUp,
   CircleNotch,
   PlayCircle,
-  VideoCamera,
   CheckCircle,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -299,13 +298,13 @@ export default function Gallery() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleNextImage = () => {
+  const handleNextImage = useCallback(() => {
     setActiveImageIndex((prev) => (prev !== null && prev < activeList.length - 1 ? prev + 1 : 0));
-  };
+  }, [activeList.length]);
 
-  const handlePrevImage = () => {
+  const handlePrevImage = useCallback(() => {
     setActiveImageIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : activeList.length - 1));
-  };
+  }, [activeList.length]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -327,7 +326,7 @@ export default function Gallery() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeImageIndex, activeList]);
+  }, [activeImageIndex, handleNextImage, handlePrevImage]);
 
   // Switch tab and reset filters
   const handleTabChange = (tab: "images" | "videos") => {
